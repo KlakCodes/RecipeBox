@@ -10,4 +10,15 @@ import kotlinx.coroutines.flow.StateFlow
 class RecipeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     private val recipeId: Int = checkNotNull(savedStateHandle["recipeId"])
     val recipe: StateFlow<Recipe?> = MutableStateFlow(RecipeRepository.getById(recipeId))
+
+    private val _chosenServings = MutableStateFlow(recipe.value?.servings ?: 1)
+    val chosenServings: StateFlow<Int> = _chosenServings
+
+    fun incrementServings() {
+        _chosenServings.value++
+    }
+
+    fun decrementServings() {
+        if (_chosenServings.value > 1) _chosenServings.value--
+    }
 }

@@ -2,9 +2,11 @@ package com.example.recipebox.ui.recipedetail
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -20,10 +22,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.recipebox.data.Ingredient
+import com.example.recipebox.util.formatIngredient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +35,7 @@ fun RecipeDetailScreen(
     viewModel: RecipeDetailViewModel = viewModel(),
 ) {
     val recipe by viewModel.recipe.collectAsState()
+    val chosenServings by viewModel.chosenServings.collectAsState()
 
     Scaffold(
         topBar = {
@@ -39,10 +43,7 @@ fun RecipeDetailScreen(
                 title = { Text(recipe?.title ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
@@ -55,11 +56,22 @@ fun RecipeDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    Text(
-                        "${r.servings} servings",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { viewModel.decrementServings() },
+                            enabled = chosenServings > 1,
+                        ) {
+                            Text("−", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Text(
+                            "$chosenServings servings",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.widthIn(min = 96.dp),
+                        )
+                        IconButton(onClick = { viewModel.incrementServings() }) {
+                            Text("+", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
                 }
 
                 if (r.ingredients.isNotEmpty()) {
@@ -71,7 +83,7 @@ fun RecipeDetailScreen(
                     }
                     items(r.ingredients) { ingredient ->
                         Text(
-                            formatIngredient(ingredient),
+                            formatIngredient(ingredient, r.servings, chosenServings),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -94,12 +106,4 @@ fun RecipeDetailScreen(
             }
         }
     }
-}
-
-private fun formatIngredient(ingredient: Ingredient): String {
-    val amount = ingredient.amount?.let { a ->
-        if (a == a.toLong().toDouble()) a.toLong().toString() else a.toString()
-    }
-    return listOfNotNull(amount, ingredient.unit.ifEmpty { null }, ingredient.name)
-        .joinToString(" ")
 }
