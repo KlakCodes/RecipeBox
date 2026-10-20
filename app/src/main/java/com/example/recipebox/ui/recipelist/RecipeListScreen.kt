@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,6 +33,7 @@ import com.example.recipebox.data.Recipe
 @Composable
 fun RecipeListScreen(
     onRecipeClick: (Int) -> Unit = {},
+    onAddClick: () -> Unit = {},
     viewModel: RecipeListViewModel = viewModel(
         factory = RecipeListViewModel.factory(
             (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
@@ -38,6 +43,11 @@ fun RecipeListScreen(
     val recipes by viewModel.recipes.collectAsState()
     Scaffold(
         topBar = { TopAppBar(title = { Text("My Recipes") }) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add recipe")
+            }
+        },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.padding(innerPadding),

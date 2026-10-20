@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import com.example.recipebox.util.formatIngredient
 @Composable
 fun RecipeDetailScreen(
     onBack: () -> Unit,
+    onEdit: (Int) -> Unit = {},
     viewModel: RecipeDetailViewModel = viewModel(
         factory = RecipeDetailViewModel.factory(
             (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
@@ -50,6 +52,13 @@ fun RecipeDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    recipe?.let { r ->
+                        IconButton(onClick = { onEdit(r.id) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit recipe")
+                        }
                     }
                 },
             )
