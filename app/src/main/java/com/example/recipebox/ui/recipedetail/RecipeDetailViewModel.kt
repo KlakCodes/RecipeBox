@@ -8,15 +8,18 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.recipebox.data.Recipe
 import com.example.recipebox.data.RecipeRepository
+import com.example.recipebox.data.ShoppingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class RecipeDetailViewModel(
     savedStateHandle: SavedStateHandle,
     repository: RecipeRepository,
+    private val shoppingRepository: ShoppingRepository,
 ) : ViewModel() {
     private val recipeId: Int = checkNotNull(savedStateHandle["recipeId"])
 
@@ -30,6 +33,9 @@ class RecipeDetailViewModel(
         override ?: r?.servings ?: 1
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
 
+    private val _addedToList = MutableStateFlow(false)
+    val addedToList: StateFlow<Boolean> = _addedToList
+
     fun incrementServings() {
         _servingsOverride.value = chosenServings.value + 1
     }
@@ -39,9 +45,24 @@ class RecipeDetailViewModel(
         if (current > 1) _servingsOverride.value = current - 1
     }
 
-    companion object {
-        fun factory(repository: RecipeRepository) = viewModelFactory {
-            initializer { RecipeDetailViewModel(createSavedStateHandle(), repository) }
+    fun addToShoppingList() {
+        val r = recipe.value ?: return
+        viewModelScope.launch {
+            shoppingRepository.addFromRecipe(r, r.servings, chosenServings.value)
+            _addedToList.value = true
         }
+    }
+
+    fun resetAddedToList() {
+        _addedToList.value = false
+    }
+
+    companion object {
+        fun factory(recipeRepository: RecipeRepository, shoppingRepository: ShoppingRepository) =
+            viewModelFactory {
+                initializer {
+                    RecipeDetailViewModel(createSavedStateHandle(), recipeRepository, shoppingRepository)
+                }
+            }
     }
 }

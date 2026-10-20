@@ -59,3 +59,12 @@ data class RecipeWithDetails(
     @Relation(parentColumn = "id", entityColumn = "recipeId")
     val steps: List<StepEntity>,
 )
+
+@Entity(tableName = "shopping_items")
+data class ShoppingItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val amount: Double?,
+    val unit: String,
+    val checked: Boolean = false,
+)

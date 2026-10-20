@@ -6,6 +6,7 @@ import com.example.recipebox.data.RecipeBoxDatabase
 import com.example.recipebox.data.RecipeDao
 import com.example.recipebox.data.RecipeEntity
 import com.example.recipebox.data.RecipeRepository
+import com.example.recipebox.data.ShoppingRepository
 import com.example.recipebox.data.StepEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ class RecipeBoxApplication : Application() {
 
     val database by lazy { RecipeBoxDatabase.getInstance(this) }
     val repository by lazy { RecipeRepository(database.recipeDao()) }
+    val shoppingRepository by lazy { ShoppingRepository(database.shoppingDao()) }
 
     override fun onCreate() {
         super.onCreate()

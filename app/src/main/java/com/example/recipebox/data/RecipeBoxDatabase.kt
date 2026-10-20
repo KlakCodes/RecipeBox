@@ -5,9 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [RecipeEntity::class, IngredientEntity::class, StepEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [RecipeEntity::class, IngredientEntity::class, StepEntity::class, ShoppingItemEntity::class],
+    version = 2,
+    exportSchema = false,
+)
 abstract class RecipeBoxDatabase : RoomDatabase() {
     abstract fun recipeDao(): RecipeDao
+    abstract fun shoppingDao(): ShoppingDao
 
     companion object {
         @Volatile private var instance: RecipeBoxDatabase? = null
@@ -18,7 +23,7 @@ abstract class RecipeBoxDatabase : RoomDatabase() {
                     context.applicationContext,
                     RecipeBoxDatabase::class.java,
                     "recipebox.db",
-                ).build().also { instance = it }
+                ).fallbackToDestructiveMigration().build().also { instance = it }
             }
     }
 }
