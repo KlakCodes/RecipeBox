@@ -19,15 +19,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.recipebox.RecipeBoxApplication
 import com.example.recipebox.data.Recipe
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeListScreen(
     onRecipeClick: (Int) -> Unit = {},
-    viewModel: RecipeListViewModel = viewModel(),
+    viewModel: RecipeListViewModel = viewModel(
+        factory = RecipeListViewModel.factory(
+            (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
+        ),
+    ),
 ) {
     val recipes by viewModel.recipes.collectAsState()
     Scaffold(

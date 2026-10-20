@@ -24,15 +24,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.recipebox.RecipeBoxApplication
 import com.example.recipebox.util.formatIngredient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeDetailScreen(
     onBack: () -> Unit,
-    viewModel: RecipeDetailViewModel = viewModel(),
+    viewModel: RecipeDetailViewModel = viewModel(
+        factory = RecipeDetailViewModel.factory(
+            (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
+        ),
+    ),
 ) {
     val recipe by viewModel.recipe.collectAsState()
     val chosenServings by viewModel.chosenServings.collectAsState()
