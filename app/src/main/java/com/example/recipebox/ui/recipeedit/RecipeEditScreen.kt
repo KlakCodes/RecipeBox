@@ -1,29 +1,31 @@
 package com.example.recipebox.ui.recipeedit
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +51,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recipebox.RecipeBoxApplication
+import com.example.recipebox.ui.components.ServingsCard
+import com.example.recipebox.ui.components.ShapeBadge
+import com.example.recipebox.ui.theme.BadgePolygons
 
 private val UNITS = listOf("", "g", "kg", "ml", "l", "tsp", "tbsp", "cup", "item")
 
@@ -71,12 +76,14 @@ fun RecipeEditScreen(
     val saveState by viewModel.saveState.collectAsState()
     val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var titleError by remember { mutableStateOf(false) }
 
     LaunchedEffect(saveState) {
         when (val s = saveState) {
             is SaveState.Success -> onSaved()
             is SaveState.Deleted -> onDeleted()
             is SaveState.Error -> {
+                if (s.message.contains("Title", ignoreCase = true)) titleError = true
                 snackbarHostState.showSnackbar(s.message)
                 viewModel.resetSaveState()
             }
@@ -129,40 +136,31 @@ fun RecipeEditScreen(
             item {
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { viewModel.updateTitle(it) },
+                    onValueChange = {
+                        viewModel.updateTitle(it)
+                        if (titleError) titleError = false
+                    },
                     label = { Text("Title") },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    textStyle = MaterialTheme.typography.titleLarge,
                     singleLine = true,
+                    isError = titleError,
+                    supportingText = if (titleError) {
+                        { Text("Title is required") }
+                    } else null,
                 )
             }
 
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Servings", style = MaterialTheme.typography.bodyLarge)
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(
-                        onClick = { viewModel.decrementServings() },
-                        enabled = servings > 1,
-                    ) {
-                        Text("−", style = MaterialTheme.typography.titleLarge)
-                    }
-                    Text(
-                        "$servings",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.widthIn(min = 32.dp),
-                    )
-                    IconButton(onClick = { viewModel.incrementServings() }) {
-                        Text("+", style = MaterialTheme.typography.titleLarge)
-                    }
-                }
+                ServingsCard(
+                    servings = servings,
+                    onDecrement = { viewModel.decrementServings() },
+                    onIncrement = { viewModel.incrementServings() },
+                )
             }
 
-            item {
-                Spacer(Modifier.height(4.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(4.dp))
-                Text("Ingredients", style = MaterialTheme.typography.titleMedium)
-            }
+            item { SectionHeader("Ingredients") }
 
             itemsIndexed(ingredients, key = { _, it -> it.id }) { index, draft ->
                 IngredientRow(
@@ -174,17 +172,10 @@ fun RecipeEditScreen(
             }
 
             item {
-                TextButton(onClick = { viewModel.addIngredient() }) {
-                    Text("+ Add ingredient")
-                }
+                AddButton("Add ingredient", onClick = { viewModel.addIngredient() })
             }
 
-            item {
-                Spacer(Modifier.height(4.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(4.dp))
-                Text("Method", style = MaterialTheme.typography.titleMedium)
-            }
+            item { SectionHeader("Method") }
 
             itemsIndexed(steps, key = { _, it -> it.id }) { index, draft ->
                 StepRow(
@@ -197,11 +188,29 @@ fun RecipeEditScreen(
             }
 
             item {
-                TextButton(onClick = { viewModel.addStep() }) {
-                    Text("+ Add step")
-                }
+                AddButton("Add step", onClick = { viewModel.addStep() })
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp),
+    )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AddButton(text: String, onClick: () -> Unit) {
+    FilledTonalButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        Text(text)
     }
 }
 
@@ -225,6 +234,7 @@ private fun IngredientRow(
             onValueChange = { onUpdate(draft.copy(amount = it)) },
             label = { Text("Amt") },
             modifier = Modifier.width(80.dp),
+            shape = MaterialTheme.shapes.medium,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
@@ -241,6 +251,7 @@ private fun IngredientRow(
                 label = { Text("Unit") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(unitExpanded) },
                 modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                shape = MaterialTheme.shapes.medium,
                 singleLine = true,
             )
             ExposedDropdownMenu(
@@ -264,6 +275,7 @@ private fun IngredientRow(
             onValueChange = { onUpdate(draft.copy(name = it)) },
             label = { Text("Name") },
             modifier = Modifier.weight(1f),
+            shape = MaterialTheme.shapes.medium,
             singleLine = true,
         )
 
@@ -286,18 +298,22 @@ private fun StepRow(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Column(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("$number.", style = MaterialTheme.typography.bodyMedium)
-        }
+        ShapeBadge(
+            text = "$number",
+            polygon = BadgePolygons[(number - 1) % BadgePolygons.size],
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            size = 40.dp,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 12.dp, end = 4.dp),
+        )
 
         OutlinedTextField(
             value = draft.text,
             onValueChange = { onUpdate(draft.copy(text = it)) },
             label = { Text("Step") },
             modifier = Modifier.weight(1f),
+            shape = MaterialTheme.shapes.medium,
             minLines = 2,
         )
 

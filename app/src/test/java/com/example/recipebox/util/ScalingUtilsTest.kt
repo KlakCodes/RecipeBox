@@ -2,6 +2,7 @@ package com.example.recipebox.util
 
 import com.example.recipebox.data.Ingredient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ScalingUtilsTest {
@@ -126,5 +127,24 @@ class ScalingUtilsTest {
     @Test
     fun `formatIngredient no scaling when servings unchanged`() {
         assertEquals("400 g chicken", formatIngredient(Ingredient(400.0, "g", "chicken"), 4, 4))
+    }
+
+    @Test
+    fun `formatScaledAmount scales and keeps unit`() {
+        assertEquals("300 g", formatScaledAmount(Ingredient(200.0, "g", "pasta"), 4, 6))
+        assertEquals("1½ tbsp", formatScaledAmount(Ingredient(1.0, "tbsp", "oil"), 2, 3))
+    }
+
+    @Test
+    fun `formatScaledAmount omits empty unit and returns null without amount`() {
+        assertEquals("3", formatScaledAmount(Ingredient(3.0, "", "garlic cloves"), 4, 4))
+        assertNull(formatScaledAmount(Ingredient(null, "", "salt"), 4, 4))
+    }
+
+    @Test
+    fun `splitFreeTextNote moves trailing note into the pill`() {
+        assertEquals("To taste" to "salt", splitFreeTextNote("salt to taste"))
+        assertEquals("To serve" to "salsa", splitFreeTextNote("salsa, to serve"))
+        assertEquals(null to "a handful of basil", splitFreeTextNote("a handful of basil"))
     }
 }

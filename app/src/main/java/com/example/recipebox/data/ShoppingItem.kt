@@ -6,4 +6,6 @@ data class ShoppingItem(
     val amount: Double?,
     val unit: String,
     val checked: Boolean = false,
+    // Recipes this item was merged from, for the "From 2 recipes" note
+    val sourceRecipeIds: Set<Int> = emptySet(),
 )

@@ -1,5 +1,6 @@
 package com.example.recipebox.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -67,4 +68,6 @@ data class ShoppingItemEntity(
     val amount: Double?,
     val unit: String,
     val checked: Boolean = false,
+    // Comma-separated recipe ids; see ShoppingItem.sourceRecipeIds
+    @ColumnInfo(defaultValue = "") val sourceRecipeIds: String = "",
 )

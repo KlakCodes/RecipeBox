@@ -52,7 +52,8 @@ The app uses a single-activity pattern. New screens should be added as composabl
 ## Key Conventions
 
 - `RecipeBoxTheme` wraps all composable trees; always use it in `@Preview` functions.
-- Dynamic color is enabled by default (`dynamicColor = true`) and takes precedence on Android 12+. Override colors via `MaterialTheme.colorScheme` tokens, not hardcoded values.
+- The app uses Material 3 Expressive (`MaterialExpressiveTheme`, material3 `1.5.0-beta02` pinned in the catalog). Dynamic (wallpaper) color is on by default (`dynamicColor = true`); the tangerine palette in `Color.kt` is the fallback and shows with `dynamicColor = false`. Never hardcode colors in screens — use `MaterialTheme.colorScheme` roles only, so wallpaper colors and dark mode work everywhere.
+- Headings (display/headline/title/label) use bundled Roboto Flex (`res/font/roboto_flex.ttf`, variable weights up to 900); body text uses the system font. The typography slots are mapped to the mockup sizes in `Type.kt` (e.g. `displayMedium` = 40sp/900 screen titles). Shapes (`RecipeBoxShapes`, `thumbnailShape`) and badge polygons live in `ui/theme/Shape.kt`; shared Expressive widgets (`ServingsCard`, `DecorShape`, `TonalIconButton`, `EmptyState`, `recipeIcon`) in `ui/components/`.
 - Dependency versions are centralized in `gradle/libs.versions.toml` — add new dependencies there, not inline in `build.gradle.kts`.
 
 ## App Plan

@@ -152,4 +152,26 @@ class ShoppingListUtilsTest {
         )
         assertTrue(result[0].checked)
     }
+
+    @Test
+    fun `merging from a second recipe records both sources`() {
+        val existing = listOf(ShoppingItem(id = 1, name = "onions", amount = 1.0, unit = "", sourceRecipeIds = setOf(7)))
+        val result = mergeIntoShoppingList(
+            existing = existing,
+            ingredients = listOf(Ingredient(1.0, "", "Onions"), Ingredient(null, "", "salt")),
+            baseServings = 2,
+            chosenServings = 2,
+            recipeId = 9,
+        )
+        assertEquals(setOf(7, 9), result[0].sourceRecipeIds)
+        assertEquals(setOf(9), result[1].sourceRecipeIds)
+    }
+
+    @Test
+    fun `adding the same recipe twice keeps one source`() {
+        val first = mergeIntoShoppingList(emptyList(), listOf(Ingredient(null, "", "salt")), 2, 2, recipeId = 7)
+        val second = mergeIntoShoppingList(first, listOf(Ingredient(null, "", "salt")), 2, 2, recipeId = 7)
+        assertEquals(1, second.size)
+        assertEquals(setOf(7), second[0].sourceRecipeIds)
+    }
 }

@@ -10,10 +10,10 @@ class ShoppingRepository(private val dao: ShoppingDao) {
 
     suspend fun addFromRecipe(recipe: Recipe, baseServings: Int, chosenServings: Int) {
         val existing = dao.getAllOnce().map { it.toDomain() }
-        val merged = mergeIntoShoppingList(existing, recipe.ingredients, baseServings, chosenServings)
+        val merged = mergeIntoShoppingList(existing, recipe.ingredients, baseServings, chosenServings, recipe.id)
         val toUpsert = merged.filter { mergedItem ->
             val original = existing.find { it.id == mergedItem.id }
-            original == null || original.amount != mergedItem.amount
+            original == null || original != mergedItem
         }
         dao.upsertItems(toUpsert.map { it.toEntity() })
     }
@@ -25,8 +25,10 @@ class ShoppingRepository(private val dao: ShoppingDao) {
 
 private fun ShoppingItemEntity.toDomain() = ShoppingItem(
     id = id, name = name, amount = amount, unit = unit, checked = checked,
+    sourceRecipeIds = sourceRecipeIds.split(',').mapNotNull { it.toIntOrNull() }.toSet(),
 )
 
 private fun ShoppingItem.toEntity() = ShoppingItemEntity(
     id = id, name = name, amount = amount, unit = unit, checked = checked,
+    sourceRecipeIds = sourceRecipeIds.joinToString(","),
 )

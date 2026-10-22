@@ -47,3 +47,22 @@ fun formatIngredient(ingredient: Ingredient, baseServings: Int, chosenServings: 
     return listOfNotNull(amountStr, ingredient.unit.ifEmpty { null }, ingredient.name)
         .joinToString(" ")
 }
+
+/** Scaled amount and unit for the amount pill, e.g. "300 g" or "1½ tbsp"; null when the ingredient has no amount. */
+fun formatScaledAmount(ingredient: Ingredient, baseServings: Int, chosenServings: Int): String? {
+    val amount = ingredient.amount ?: return null
+    val amountStr = formatAmount(scaleAmount(amount, baseServings, chosenServings), ingredient.unit)
+    return listOfNotNull(amountStr, ingredient.unit.ifEmpty { null }).joinToString(" ")
+}
+
+private val freeTextNote = Regex("""^(.*?),?\s+(to taste|to serve)$""", RegexOption.IGNORE_CASE)
+
+/**
+ * Splits a trailing "to taste" / "to serve" off an amount-less ingredient name so it can sit in
+ * the amount pill: "salt to taste" → ("To taste", "salt"). Returns (null, name) when there's no note.
+ */
+fun splitFreeTextNote(name: String): Pair<String?, String> {
+    val match = freeTextNote.matchEntire(name.trim()) ?: return null to name
+    val (rest, note) = match.destructured
+    return note.replaceFirstChar { it.uppercase() } to rest
+}
