@@ -2,6 +2,7 @@ package com.example.recipebox.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import com.example.recipebox.R
@@ -40,4 +41,4 @@ fun RecipeIconCategory.vector(): ImageVector = ImageVector.vectorResource(drawab
 
 /** A recipe's icon: the one chosen on the edit screen, otherwise the automatic pick. */
 @Composable
-fun recipeIcon(recipe: Recipe): ImageVector = recipe.displayIcon().vector()
+fun recipeIcon(recipe: Recipe): ImageVector = remember(recipe) { recipe.displayIcon() }.vector()

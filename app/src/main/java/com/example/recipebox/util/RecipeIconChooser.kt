@@ -113,10 +113,11 @@ fun chooseIcon(title: String, ingredientNames: List<String>): RecipeIconCategory
     val best = RecipeIconCategory.entries
         .map { category ->
             // Plate has no keywords, so it scores 0 and is only used as the fallback
-            val titlePosition = category.keywords.maxOfOrNull { lastPosition(normalisedTitle, it) } ?: -1
+            val keywords = normalisedKeywords.getValue(category)
+            val titlePosition = keywords.maxOfOrNull { normalisedTitle.lastIndexOf(it) } ?: -1
             val titlePoints = if (titlePosition >= 0) 3 else 0
             val ingredientPoints = normalisedIngredients.count { ingredient ->
-                category.keywords.any { lastPosition(ingredient, it) >= 0 }
+                keywords.any { ingredient.contains(it) }
             }
             Score(category, titlePoints + ingredientPoints, titlePosition)
         }
@@ -127,9 +128,12 @@ fun chooseIcon(title: String, ingredientNames: List<String>): RecipeIconCategory
     return best?.category ?: RecipeIconCategory.Plate
 }
 
+private val NonWordChars = Regex("[^\\p{L}\\p{N}]+")
+
+// Normalised once: this runs for every recipe card, so per-call regex work made scrolling and navigation stutter
+private val normalisedKeywords: Map<RecipeIconCategory, List<String>> =
+    RecipeIconCategory.entries.associateWith { category -> category.keywords.map(::normalise) }
+
 /** Lowercase words separated by single spaces and padded with one at each end, so " egg " never matches "eggplant". */
 private fun normalise(text: String): String =
-    " " + text.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() }.joinToString(" ") + " "
-
-/** Where [keyword] last appears in [normalisedText] as a whole word or phrase, or -1. */
-private fun lastPosition(normalisedText: String, keyword: String): Int = normalisedText.lastIndexOf(normalise(keyword))
+    " " + text.lowercase().split(NonWordChars).filter { it.isNotEmpty() }.joinToString(" ") + " "
