@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.recipebox.data.Ingredient
 import com.example.recipebox.data.RecipeRepository
 import com.example.recipebox.data.Step
+import com.example.recipebox.util.formatEditableAmount
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -72,7 +73,7 @@ class RecipeEditViewModel(
                     _servings.value = recipe.servings
                     _icon.value = recipe.icon
                     _ingredients.value = recipe.ingredients.map { ing ->
-                        IngredientDraft(amount = ing.amount?.toString() ?: "", unit = ing.unit, name = ing.name)
+                        IngredientDraft(amount = ing.amount?.let(::formatEditableAmount) ?: "", unit = ing.unit, name = ing.name)
                     }.ifEmpty { listOf(IngredientDraft()) }
                     _steps.value = recipe.steps.map { step ->
                         StepDraft(text = step.text)

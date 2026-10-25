@@ -1,6 +1,7 @@
 package com.example.recipebox.util
 
 import com.example.recipebox.data.Ingredient
+import java.math.BigDecimal
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -66,3 +67,10 @@ fun splitFreeTextNote(name: String): Pair<String?, String> {
     val (rest, note) = match.destructured
     return note.replaceFirstChar { it.uppercase() } to rest
 }
+
+/**
+ * An amount for an editable text field: "1" not "1.0", every digit kept and never "1.0E7", so saving
+ * the field unchanged stores exactly the same number. Not for display; use [formatAmount] for that.
+ */
+fun formatEditableAmount(amount: Double): String =
+    BigDecimal(amount.toString()).stripTrailingZeros().toPlainString()

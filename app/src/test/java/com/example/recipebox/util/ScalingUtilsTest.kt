@@ -147,4 +147,26 @@ class ScalingUtilsTest {
         assertEquals("To serve" to "salsa", splitFreeTextNote("salsa, to serve"))
         assertEquals(null to "a handful of basil", splitFreeTextNote("a handful of basil"))
     }
+
+    @Test
+    fun `formatEditableAmount - whole numbers drop the decimal point`() {
+        assertEquals("1", formatEditableAmount(1.0))
+        assertEquals("400", formatEditableAmount(400.0))
+        assertEquals("0", formatEditableAmount(0.0))
+    }
+
+    @Test
+    fun `formatEditableAmount - fractions keep every digit and never use E notation`() {
+        assertEquals("1.5", formatEditableAmount(1.5))
+        assertEquals("0.25", formatEditableAmount(0.25))
+        assertEquals("10000000", formatEditableAmount(1.0E7))
+        assertEquals("0.0001", formatEditableAmount(1.0E-4))
+    }
+
+    @Test
+    fun `formatEditableAmount - saving the field unchanged stores the same number`() {
+        listOf(1.0, 1.5, 0.1, 1.0 / 3, 2.0 / 3, 123.456, 1.0E7, 1.0E-4).forEach { amount ->
+            assertEquals(amount, formatEditableAmount(amount).toDouble(), 0.0)
+        }
+    }
 }
