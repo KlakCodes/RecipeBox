@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,6 +32,7 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -45,12 +47,16 @@ import com.example.recipebox.RecipeBoxApplication
 import com.example.recipebox.data.Recipe
 import com.example.recipebox.ui.components.DecorShape
 import com.example.recipebox.ui.components.EmptyState
+import com.example.recipebox.ui.components.RecipeSharedPart
+import com.example.recipebox.ui.components.sharedRecipePart
 import com.example.recipebox.ui.components.TonalIconButton
 import com.example.recipebox.ui.components.recipeIcon
 import com.example.recipebox.ui.theme.RecipeBoxShapes
 import com.example.recipebox.ui.theme.thumbnailShape
 import com.example.recipebox.util.plural
 import java.time.LocalTime
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -58,6 +64,7 @@ fun RecipeListScreen(
     onRecipeClick: (Int) -> Unit = {},
     onAddClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    scrollToTopRequests: Flow<Unit> = emptyFlow(),
     viewModel: RecipeListViewModel = viewModel(
         factory = RecipeListViewModel.factory(
             (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
@@ -66,10 +73,16 @@ fun RecipeListScreen(
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val greeting = remember { greetingFor(LocalTime.now().hour) }
+    val gridState = rememberLazyGridState()
+
+    LaunchedEffect(scrollToTopRequests) {
+        scrollToTopRequests.collect { gridState.animateScrollToItem(0) }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
+            state = gridState,
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 112.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -159,6 +172,7 @@ private fun HeroRecipeCard(recipe: Recipe, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier
+            .sharedRecipePart(recipe.id, RecipeSharedPart.Container, clipShape = RecipeBoxShapes.Hero)
             .fillMaxWidth()
             .height(176.dp),
         shape = RecipeBoxShapes.Hero,
@@ -176,6 +190,7 @@ private fun HeroRecipeCard(recipe: Recipe, onClick: () -> Unit) {
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 28.dp, y = (-24).dp)
+                    .sharedRecipePart(recipe.id, RecipeSharedPart.Shape)
                     .size(156.dp),
             ) {
                 Icon(
@@ -183,6 +198,7 @@ private fun HeroRecipeCard(recipe: Recipe, onClick: () -> Unit) {
                     contentDescription = null,
                     modifier = Modifier
                         .offset(x = (-10).dp, y = 10.dp)
+                        .sharedRecipePart(recipe.id, RecipeSharedPart.Icon)
                         .size(56.dp),
                 )
             }
@@ -196,6 +212,7 @@ private fun HeroRecipeCard(recipe: Recipe, onClick: () -> Unit) {
                     style = MaterialTheme.typography.headlineMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.sharedRecipePart(recipe.id, RecipeSharedPart.Title),
                 )
                 Text(
                     "Serves ${recipe.servings} · ${plural(recipe.ingredients.size, "ingredient")}",
@@ -221,6 +238,7 @@ private fun RecipeCard(recipe: Recipe, index: Int, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier
+            .sharedRecipePart(recipe.id, RecipeSharedPart.Container, clipShape = RecipeBoxShapes.Card)
             .fillMaxWidth()
             .height(152.dp),
         shape = RecipeBoxShapes.Card,
@@ -234,11 +252,17 @@ private fun RecipeCard(recipe: Recipe, index: Int, onClick: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
+                    .sharedRecipePart(recipe.id, RecipeSharedPart.Shape)
                     .size(60.dp)
                     .background(palette.strong, thumbnailShape(index)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(recipeIcon(recipe), contentDescription = null, tint = palette.onStrong)
+                Icon(
+                    recipeIcon(recipe),
+                    contentDescription = null,
+                    tint = palette.onStrong,
+                    modifier = Modifier.sharedRecipePart(recipe.id, RecipeSharedPart.Icon),
+                )
             }
             Column {
                 Text(
@@ -246,6 +270,7 @@ private fun RecipeCard(recipe: Recipe, index: Int, onClick: () -> Unit) {
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.sharedRecipePart(recipe.id, RecipeSharedPart.Title),
                 )
                 Text(
                     "Serves ${recipe.servings} · ${plural(recipe.ingredients.size, "item")}",

@@ -51,9 +51,11 @@ import com.example.recipebox.data.Ingredient
 import com.example.recipebox.data.Recipe
 import com.example.recipebox.data.Step
 import com.example.recipebox.ui.components.DecorShape
+import com.example.recipebox.ui.components.RecipeSharedPart
 import com.example.recipebox.ui.components.ServingsCard
 import com.example.recipebox.ui.components.TonalIconButton
 import com.example.recipebox.ui.components.recipeIcon
+import com.example.recipebox.ui.components.sharedRecipePart
 import com.example.recipebox.ui.theme.RecipeBoxShapes
 import com.example.recipebox.util.formatScaledAmount
 import com.example.recipebox.util.plural
@@ -177,6 +179,7 @@ private fun HeroPanel(recipe: Recipe, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     Box(
         modifier = modifier
+            .sharedRecipePart(recipe.id, RecipeSharedPart.Container, clipShape = RecipeBoxShapes.HeroLarge)
             .fillMaxWidth()
             .height(196.dp)
             .clip(RecipeBoxShapes.HeroLarge)
@@ -189,6 +192,7 @@ private fun HeroPanel(recipe: Recipe, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset(x = 36.dp, y = (-32).dp)
+                .sharedRecipePart(recipe.id, RecipeSharedPart.Shape)
                 .size(184.dp),
         ) {
             Icon(
@@ -197,6 +201,7 @@ private fun HeroPanel(recipe: Recipe, modifier: Modifier = Modifier) {
                 tint = colors.onPrimaryContainer,
                 modifier = Modifier
                     .offset(x = (-14).dp, y = 14.dp)
+                    .sharedRecipePart(recipe.id, RecipeSharedPart.Icon)
                     .size(64.dp),
             )
         }
@@ -205,7 +210,12 @@ private fun HeroPanel(recipe: Recipe, modifier: Modifier = Modifier) {
                 .align(Alignment.BottomStart)
                 .padding(start = 24.dp, end = 24.dp, bottom = 22.dp),
         ) {
-            Text(recipe.title, style = MaterialTheme.typography.displaySmall, color = colors.onPrimaryContainer)
+            Text(
+                recipe.title,
+                style = MaterialTheme.typography.displaySmall,
+                color = colors.onPrimaryContainer,
+                modifier = Modifier.sharedRecipePart(recipe.id, RecipeSharedPart.Title),
+            )
             Text(
                 "${plural(recipe.ingredients.size, "ingredient")} · ${plural(recipe.steps.size, "step")}",
                 style = MaterialTheme.typography.labelLarge,

@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,10 +63,13 @@ import com.example.recipebox.data.ManualAddResult
 import com.example.recipebox.data.ShoppingItem
 import com.example.recipebox.ui.components.EmptyState
 import com.example.recipebox.util.formatAmount
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ShoppingListScreen(
+    scrollToTopRequests: Flow<Unit> = emptyFlow(),
     viewModel: ShoppingListViewModel = viewModel(
         factory = ShoppingListViewModel.factory(
             (LocalContext.current.applicationContext as RecipeBoxApplication).shoppingRepository,
@@ -75,6 +80,11 @@ fun ShoppingListScreen(
     val lastManualAdd by viewModel.lastManualAdd.collectAsState()
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(scrollToTopRequests) {
+        scrollToTopRequests.collect { listState.animateScrollToItem(0) }
+    }
 
     LaunchedEffect(lastManualAdd) {
         val result = lastManualAdd ?: return@LaunchedEffect
@@ -89,7 +99,7 @@ fun ShoppingListScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        ShoppingListContent(shoppingItems, viewModel)
+        ShoppingListContent(shoppingItems, listState, viewModel)
 
         ExtendedFloatingActionButton(
             onClick = { showAddSheet = true },
@@ -125,7 +135,11 @@ fun ShoppingListScreen(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ShoppingListContent(shoppingItems: List<ShoppingItem>, viewModel: ShoppingListViewModel) {
+private fun ShoppingListContent(
+    shoppingItems: List<ShoppingItem>,
+    listState: LazyListState,
+    viewModel: ShoppingListViewModel,
+) {
     val (ticked, toBuy) = shoppingItems.partition { it.checked }
 
     if (shoppingItems.isEmpty()) {
@@ -151,6 +165,7 @@ private fun ShoppingListContent(shoppingItems: List<ShoppingItem>, viewModel: Sh
     }
 
     LazyColumn(
+        state = listState,
         // Bottom padding clears the Add item FAB, matching the Recipe list
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 112.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
