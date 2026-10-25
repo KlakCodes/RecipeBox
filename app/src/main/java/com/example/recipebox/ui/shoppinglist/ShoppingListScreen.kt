@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,20 +21,31 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +57,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recipebox.RecipeBoxApplication
+import com.example.recipebox.data.ManualAddResult
 import com.example.recipebox.data.ShoppingItem
 import com.example.recipebox.ui.components.EmptyState
 import com.example.recipebox.util.formatAmount
@@ -59,6 +72,60 @@ fun ShoppingListScreen(
     ),
 ) {
     val shoppingItems by viewModel.items.collectAsState()
+    val lastManualAdd by viewModel.lastManualAdd.collectAsState()
+    var showAddSheet by rememberSaveable { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(lastManualAdd) {
+        val result = lastManualAdd ?: return@LaunchedEffect
+        viewModel.resetLastManualAdd()
+        val name = result.name.replaceFirstChar { it.uppercase() }
+        if (result is ManualAddResult.AlreadyListed) {
+            snackbarHostState.showSnackbar("$name is already on the list")
+        } else {
+            val action = snackbarHostState.showSnackbar("Added $name", actionLabel = "Undo", duration = SnackbarDuration.Short)
+            if (action == SnackbarResult.ActionPerformed) viewModel.undoAdd(result)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        ShoppingListContent(shoppingItems, viewModel)
+
+        ExtendedFloatingActionButton(
+            onClick = { showAddSheet = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 16.dp)
+                .height(72.dp),
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.size(12.dp))
+            Text("Add item", style = MaterialTheme.typography.titleLarge)
+        }
+
+        // Sits above the FAB so it never covers it
+        SnackbarHost(
+            snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 96.dp),
+        )
+    }
+
+    if (showAddSheet) {
+        AddItemSheet(
+            onAdd = { name, amount, unit -> viewModel.addItem(name, amount, unit) },
+            onDismiss = { showAddSheet = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ShoppingListContent(shoppingItems: List<ShoppingItem>, viewModel: ShoppingListViewModel) {
     val (ticked, toBuy) = shoppingItems.partition { it.checked }
 
     if (shoppingItems.isEmpty()) {
@@ -76,7 +143,7 @@ fun ShoppingListScreen(
                     },
                     polygon = MaterialShapes.Sunny,
                     title = "All done",
-                    hint = "Add a recipe from its page to start a new list",
+                    hint = "Add a recipe from its page, or tap Add item",
                 )
             }
         }
@@ -84,7 +151,8 @@ fun ShoppingListScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
+        // Bottom padding clears the Add item FAB, matching the Recipe list
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 112.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "header") {

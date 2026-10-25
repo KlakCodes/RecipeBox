@@ -51,11 +51,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recipebox.RecipeBoxApplication
+import com.example.recipebox.data.UNITS
 import com.example.recipebox.ui.components.ServingsCard
 import com.example.recipebox.ui.components.ShapeBadge
 import com.example.recipebox.ui.theme.BadgePolygons
-
-private val UNITS = listOf("", "g", "kg", "ml", "l", "tsp", "tbsp", "cup", "item")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

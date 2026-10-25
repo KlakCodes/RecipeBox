@@ -2,8 +2,11 @@ package com.example.recipebox
 
 import com.example.recipebox.data.Ingredient
 import com.example.recipebox.data.ShoppingItem
+import com.example.recipebox.util.addManualItem
 import com.example.recipebox.util.mergeIntoShoppingList
+import com.example.recipebox.util.parseAmount
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -173,5 +176,82 @@ class ShoppingListUtilsTest {
         val second = mergeIntoShoppingList(first, listOf(Ingredient(null, "", "salt")), 2, 2, recipeId = 7)
         assertEquals(1, second.size)
         assertEquals(setOf(7), second[0].sourceRecipeIds)
+    }
+
+    @Test
+    fun `manual item - added to empty list with trimmed name`() {
+        val result = addManualItem(emptyList(), "  Milk ", "2", "l")
+        assertEquals(1, result.size)
+        assertEquals("Milk", result[0].name)
+        assertEquals(2.0, result[0].amount!!, 0.001)
+        assertEquals("l", result[0].unit)
+        assertTrue(result[0].sourceRecipeIds.isEmpty())
+    }
+
+    @Test
+    fun `manual item - same name ignoring case and same unit merges into existing`() {
+        val existing = listOf(ShoppingItem(id = 3, name = "pasta", amount = 200.0, unit = "g", sourceRecipeIds = setOf(1)))
+        val result = addManualItem(existing, " PASTA", "150", "g")
+        assertEquals(1, result.size)
+        assertEquals(3, result[0].id)
+        assertEquals(350.0, result[0].amount!!, 0.001)
+        assertEquals(setOf(1), result[0].sourceRecipeIds)
+    }
+
+    @Test
+    fun `manual item - same name but different unit is a separate item`() {
+        val existing = listOf(ShoppingItem(id = 3, name = "milk", amount = 500.0, unit = "ml"))
+        val result = addManualItem(existing, "milk", "1", "l")
+        assertEquals(2, result.size)
+        assertEquals(500.0, result[0].amount!!, 0.001)
+        assertEquals("l", result[1].unit)
+    }
+
+    @Test
+    fun `manual item - merging into a ticked item unticks it`() {
+        val existing = listOf(ShoppingItem(id = 3, name = "eggs", amount = 6.0, unit = "item", checked = true))
+        val result = addManualItem(existing, "Eggs", "6", "item")
+        assertEquals(12.0, result[0].amount!!, 0.001)
+        assertFalse(result[0].checked)
+    }
+
+    @Test
+    fun `manual item - no amount is added with null amount`() {
+        val result = addManualItem(emptyList(), "Salt", "", "")
+        assertEquals(1, result.size)
+        assertNull(result[0].amount)
+    }
+
+    @Test
+    fun `manual item - invalid amount is treated as no amount`() {
+        val result = addManualItem(emptyList(), "Bread", "a loaf", "item")
+        assertNull(result[0].amount)
+    }
+
+    @Test
+    fun `manual item - no amount already on list is not duplicated`() {
+        val existing = listOf(ShoppingItem(id = 3, name = "salt", amount = null, unit = ""))
+        val result = addManualItem(existing, "Salt", "", "")
+        assertEquals(existing, result)
+    }
+
+    @Test
+    fun `manual item - ticked no-amount item already on list is unticked, not duplicated`() {
+        val existing = listOf(ShoppingItem(id = 3, name = "salt", amount = null, unit = "", checked = true))
+        val result = addManualItem(existing, "salt", "", "")
+        assertEquals(1, result.size)
+        assertFalse(result[0].checked)
+    }
+
+    @Test
+    fun `parseAmount - accepts dot or comma decimals and rejects blank, junk, zero and negatives`() {
+        assertEquals(1.5, parseAmount(" 1.5 ")!!, 0.001)
+        assertEquals(1.5, parseAmount("1,5")!!, 0.001)
+        assertNull(parseAmount(""))
+        assertNull(parseAmount("   "))
+        assertNull(parseAmount("abc"))
+        assertNull(parseAmount("0"))
+        assertNull(parseAmount("-2"))
+        assertNull(parseAmount("NaN"))
     }
 }

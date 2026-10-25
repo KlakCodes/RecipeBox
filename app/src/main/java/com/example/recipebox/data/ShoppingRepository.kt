@@ -1,5 +1,6 @@
 package com.example.recipebox.data
 
+import com.example.recipebox.util.addManualItem
 import com.example.recipebox.util.mergeIntoShoppingList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +17,28 @@ class ShoppingRepository(private val dao: ShoppingDao) {
             original == null || original != mergedItem
         }
         dao.upsertItems(toUpsert.map { it.toEntity() })
+    }
+
+    /** Adds a hand-typed item, merging it like a recipe ingredient. The result carries what Undo needs. */
+    suspend fun addManual(name: String, amountText: String, unit: String): ManualAddResult {
+        val existing = dao.getAllOnce().map { it.toDomain() }
+        val updated = addManualItem(existing, name, amountText, unit)
+        val inserted = updated.firstOrNull { it.id == 0 }
+        if (inserted != null) {
+            val id = dao.upsertItem(inserted.toEntity()).toInt()
+            return ManualAddResult.Inserted(id, inserted.name)
+        }
+        val changed = updated.firstOrNull { it !in existing } ?: return ManualAddResult.AlreadyListed(name.trim())
+        dao.upsertItem(changed.toEntity())
+        return ManualAddResult.Merged(previous = existing.first { it.id == changed.id })
+    }
+
+    suspend fun undoManualAdd(result: ManualAddResult) {
+        when (result) {
+            is ManualAddResult.Inserted -> dao.deleteById(result.id)
+            is ManualAddResult.Merged -> dao.upsertItem(result.previous.toEntity())
+            is ManualAddResult.AlreadyListed -> Unit
+        }
     }
 
     suspend fun toggleChecked(id: Int, checked: Boolean) = dao.setChecked(id, checked)
