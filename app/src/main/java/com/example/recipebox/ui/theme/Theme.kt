@@ -1,6 +1,10 @@
 package com.example.recipebox.ui.theme
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
@@ -87,23 +91,27 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerHighest = SurfaceContainerHighestLight,
 )
 
+/** Wallpaper colours arrived in Android 12. Always true while minSdk is 31; kept in case minSdk drops. */
+@SuppressLint("ObsoleteSdkInt")
+val supportsDynamicColor: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+/** The wallpaper or tangerine scheme. Also used by Settings to preview each palette's swatches. */
+@SuppressLint("NewApi")
+fun recipeBoxColorScheme(dynamic: Boolean, dark: Boolean, context: Context): ColorScheme = when {
+    dynamic && supportsDynamicColor -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    dark -> DarkColorScheme
+    else -> LightColorScheme
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RecipeBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Wallpaper colours (always available: minSdk is 31). Pass false to show the tangerine palette.
+    // Wallpaper colours. Pass false (or run on Android 11 or older) to show the tangerine palette.
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = recipeBoxColorScheme(dynamicColor, darkTheme, LocalContext.current)
 
     MaterialExpressiveTheme(
         colorScheme = colorScheme,

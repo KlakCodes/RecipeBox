@@ -1,11 +1,16 @@
 package com.example.recipebox
 
 import android.app.Application
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.recipebox.data.IngredientEntity
 import com.example.recipebox.data.RecipeBoxDatabase
 import com.example.recipebox.data.RecipeDao
 import com.example.recipebox.data.RecipeEntity
 import com.example.recipebox.data.RecipeRepository
+import com.example.recipebox.data.SettingsRepository
 import com.example.recipebox.data.ShoppingRepository
 import com.example.recipebox.data.StepEntity
 import kotlinx.coroutines.CoroutineScope
@@ -13,12 +18,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
 class RecipeBoxApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val database by lazy { RecipeBoxDatabase.getInstance(this) }
     val repository by lazy { RecipeRepository(database.recipeDao()) }
     val shoppingRepository by lazy { ShoppingRepository(database.shoppingDao()) }
+    val settingsRepository by lazy { SettingsRepository(settingsDataStore) }
 
     override fun onCreate() {
         super.onCreate()

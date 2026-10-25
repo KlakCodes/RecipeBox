@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RestaurantMenu
-import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -45,6 +45,7 @@ import com.example.recipebox.RecipeBoxApplication
 import com.example.recipebox.data.Recipe
 import com.example.recipebox.ui.components.DecorShape
 import com.example.recipebox.ui.components.EmptyState
+import com.example.recipebox.ui.components.TonalIconButton
 import com.example.recipebox.ui.components.recipeIcon
 import com.example.recipebox.ui.theme.RecipeBoxShapes
 import com.example.recipebox.ui.theme.thumbnailShape
@@ -56,6 +57,7 @@ import java.time.LocalTime
 fun RecipeListScreen(
     onRecipeClick: (Int) -> Unit = {},
     onAddClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     viewModel: RecipeListViewModel = viewModel(
         factory = RecipeListViewModel.factory(
             (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
@@ -73,7 +75,7 @@ fun RecipeListScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
-                Header(greeting)
+                Header(greeting, onSettingsClick)
             }
             if (recipes.isNotEmpty()) {
                 item(key = "recent", span = { GridItemSpan(maxLineSpan) }) {
@@ -136,7 +138,7 @@ internal fun greetingFor(hour: Int): String = when (hour) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun Header(greeting: String) {
+private fun Header(greeting: String, onSettingsClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -146,17 +148,7 @@ private fun Header(greeting: String) {
             )
             Text("Recipe Box", style = MaterialTheme.typography.displayMedium)
         }
-        DecorShape(
-            polygon = MaterialShapes.Sunny,
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            modifier = Modifier.size(56.dp),
-        ) {
-            Icon(
-                Icons.Outlined.Eco,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-        }
+        TonalIconButton(Icons.Outlined.Settings, "Settings", onSettingsClick)
     }
 }
 

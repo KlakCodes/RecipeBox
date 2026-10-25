@@ -29,6 +29,7 @@ import com.example.recipebox.RecipeBoxApplication
 import com.example.recipebox.ui.recipedetail.RecipeDetailScreen
 import com.example.recipebox.ui.recipeedit.RecipeEditScreen
 import com.example.recipebox.ui.recipelist.RecipeListScreen
+import com.example.recipebox.ui.settings.SettingsScreen
 import com.example.recipebox.ui.shoppinglist.ShoppingListScreen
 import com.example.recipebox.ui.shoppinglist.ShoppingListViewModel
 
@@ -98,7 +99,11 @@ fun RecipeBoxNavGraph(navController: NavHostController = rememberNavController()
                 RecipeListScreen(
                     onRecipeClick = { id -> navController.navigate("recipe_detail/$id") },
                     onAddClick = { navController.navigate("recipe_edit") },
+                    onSettingsClick = { navController.navigate("settings") },
                 )
+            }
+            composable("settings") {
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 route = "recipe_detail/{recipeId}",
