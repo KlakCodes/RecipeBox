@@ -192,7 +192,7 @@ private fun HeroPanel(recipe: Recipe, modifier: Modifier = Modifier) {
                 .size(184.dp),
         ) {
             Icon(
-                recipeIcon(recipe.id),
+                recipeIcon(recipe),
                 contentDescription = null,
                 tint = colors.onPrimaryContainer,
                 modifier = Modifier

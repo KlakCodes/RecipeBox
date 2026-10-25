@@ -54,6 +54,10 @@ class RecipeEditViewModel(
     private val _steps = MutableStateFlow(listOf(StepDraft()))
     val steps: StateFlow<List<StepDraft>> = _steps
 
+    // RecipeIconCategory key, or null for Auto
+    private val _icon = MutableStateFlow<String?>(null)
+    val icon: StateFlow<String?> = _icon
+
     private val _saveState = MutableStateFlow<SaveState>(SaveState.Idle)
     val saveState: StateFlow<SaveState> = _saveState
 
@@ -66,6 +70,7 @@ class RecipeEditViewModel(
                 repository.getById(recipeId).first()?.let { recipe ->
                     _title.value = recipe.title
                     _servings.value = recipe.servings
+                    _icon.value = recipe.icon
                     _ingredients.value = recipe.ingredients.map { ing ->
                         IngredientDraft(amount = ing.amount?.toString() ?: "", unit = ing.unit, name = ing.name)
                     }.ifEmpty { listOf(IngredientDraft()) }
@@ -78,6 +83,8 @@ class RecipeEditViewModel(
     }
 
     fun updateTitle(value: String) { _title.value = value }
+
+    fun updateIcon(key: String?) { _icon.value = key }
 
     fun incrementServings() { _servings.value++ }
     fun decrementServings() { if (_servings.value > 1) _servings.value-- }
@@ -128,6 +135,7 @@ class RecipeEditViewModel(
                 servings = _servings.value,
                 ingredients = ingredients.map { Ingredient(it.amount.toDoubleOrNull(), it.unit, it.name) },
                 steps = steps.mapIndexed { i, s -> Step(i + 1, s.text) },
+                icon = _icon.value,
                 recipeId = recipeId,
             )
             _saveState.value = SaveState.Success

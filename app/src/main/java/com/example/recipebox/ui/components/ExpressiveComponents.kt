@@ -21,14 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.outlined.BakeryDining
-import androidx.compose.material.icons.outlined.BreakfastDining
-import androidx.compose.material.icons.outlined.Icecream
-import androidx.compose.material.icons.outlined.LocalPizza
-import androidx.compose.material.icons.outlined.LunchDining
-import androidx.compose.material.icons.outlined.OutdoorGrill
-import androidx.compose.material.icons.outlined.RamenDining
-import androidx.compose.material.icons.outlined.SoupKitchen
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -49,20 +41,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.RoundedPolygon
-
-private val RecipeIcons = listOf(
-    Icons.Outlined.RamenDining,
-    Icons.Outlined.OutdoorGrill,
-    Icons.Outlined.BakeryDining,
-    Icons.Outlined.SoupKitchen,
-    Icons.Outlined.BreakfastDining,
-    Icons.Outlined.LunchDining,
-    Icons.Outlined.LocalPizza,
-    Icons.Outlined.Icecream,
-)
-
-/** Recipes have no category yet, so each gets a stable food icon from its id (same on list and detail). */
-fun recipeIcon(recipeId: Int): ImageVector = RecipeIcons[Math.floorMod(recipeId, RecipeIcons.size)]
 
 /** A Material Expressive polygon (cookie, sunny, clover…) with centred text, e.g. a step number. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

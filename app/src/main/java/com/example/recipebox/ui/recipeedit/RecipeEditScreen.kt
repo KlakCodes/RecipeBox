@@ -43,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +56,8 @@ import com.example.recipebox.data.UNITS
 import com.example.recipebox.ui.components.ServingsCard
 import com.example.recipebox.ui.components.ShapeBadge
 import com.example.recipebox.ui.theme.BadgePolygons
+import com.example.recipebox.util.RecipeIconCategory
+import com.example.recipebox.util.chooseIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,10 +75,24 @@ fun RecipeEditScreen(
     val servings by viewModel.servings.collectAsState()
     val ingredients by viewModel.ingredients.collectAsState()
     val steps by viewModel.steps.collectAsState()
+    val iconKey by viewModel.icon.collectAsState()
     val saveState by viewModel.saveState.collectAsState()
     val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var titleError by remember { mutableStateOf(false) }
+    var showIconPicker by rememberSaveable { mutableStateOf(false) }
+    // Follows the title and ingredients as you type, so Auto always previews what will be shown
+    val autoIcon = remember(title, ingredients) { chooseIcon(title, ingredients.map { it.name }) }
+    val chosenIcon = RecipeIconCategory.fromKey(iconKey)
+
+    if (showIconPicker) {
+        IconPickerSheet(
+            selectedKey = iconKey,
+            autoIcon = autoIcon,
+            onSelect = { viewModel.updateIcon(it) },
+            onDismiss = { showIconPicker = false },
+        )
+    }
 
     LaunchedEffect(saveState) {
         when (val s = saveState) {
@@ -156,6 +173,14 @@ fun RecipeEditScreen(
                     servings = servings,
                     onDecrement = { viewModel.decrementServings() },
                     onIncrement = { viewModel.incrementServings() },
+                )
+            }
+
+            item {
+                IconRow(
+                    icon = chosenIcon ?: autoIcon,
+                    isAuto = chosenIcon == null,
+                    onClick = { showIconPicker = true },
                 )
             }
 

@@ -179,7 +179,7 @@ private fun HeroRecipeCard(recipe: Recipe, onClick: () -> Unit) {
                     .size(156.dp),
             ) {
                 Icon(
-                    recipeIcon(recipe.id),
+                    recipeIcon(recipe),
                     contentDescription = null,
                     modifier = Modifier
                         .offset(x = (-10).dp, y = 10.dp)
@@ -238,7 +238,7 @@ private fun RecipeCard(recipe: Recipe, index: Int, onClick: () -> Unit) {
                     .background(palette.strong, thumbnailShape(index)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(recipeIcon(recipe.id), contentDescription = null, tint = palette.onStrong)
+                Icon(recipeIcon(recipe), contentDescription = null, tint = palette.onStrong)
             }
             Column {
                 Text(

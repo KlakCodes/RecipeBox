@@ -15,10 +15,11 @@ class RecipeRepository(private val dao: RecipeDao) {
         servings: Int,
         ingredients: List<Ingredient>,
         steps: List<Step>,
+        icon: String? = null,
         recipeId: Int = -1,
     ) {
         if (recipeId == -1) {
-            val id = dao.insertRecipe(RecipeEntity(title = title, servings = servings)).toInt()
+            val id = dao.insertRecipe(RecipeEntity(title = title, servings = servings, icon = icon)).toInt()
             dao.insertIngredients(ingredients.mapIndexed { i, it ->
                 IngredientEntity(recipeId = id, amount = it.amount, unit = it.unit, name = it.name, position = i)
             })
@@ -27,7 +28,7 @@ class RecipeRepository(private val dao: RecipeDao) {
             })
         } else {
             val existing = dao.getRecipeEntityById(recipeId) ?: return
-            dao.updateRecipe(existing.copy(title = title, servings = servings))
+            dao.updateRecipe(existing.copy(title = title, servings = servings, icon = icon))
             dao.deleteIngredientsByRecipeId(recipeId)
             dao.deleteStepsByRecipeId(recipeId)
             dao.insertIngredients(ingredients.mapIndexed { i, it ->
@@ -50,4 +51,5 @@ private fun RecipeWithDetails.toDomain(): Recipe = Recipe(
     servings = recipe.servings,
     ingredients = ingredients.sortedBy { it.position }.map { Ingredient(it.amount, it.unit, it.name) },
     steps = steps.sortedBy { it.position }.map { Step(it.position, it.text) },
+    icon = recipe.icon,
 )

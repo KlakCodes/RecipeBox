@@ -15,6 +15,8 @@ data class RecipeEntity(
     val servings: Int,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    // RecipeIconCategory key chosen by hand; null means pick automatically
+    val icon: String? = null,
 )
 
 @Entity(
