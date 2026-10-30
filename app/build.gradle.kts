@@ -24,8 +24,16 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
+        }
+        // Release-like build for performance testing: R8 on, not debuggable, but signed with
+        // the debug key so Android Studio can install it without a release keystore
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
         }
     }
     compileOptions {
