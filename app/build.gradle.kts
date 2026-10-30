@@ -1,9 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
 }
+
+// Release signing secrets come from keystore.properties (git-ignored) or environment variables,
+// never from a tracked file
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(key: String, env: String): String? =
+    keystoreProperties.getProperty(key) ?: providers.environmentVariable(env).orNull
 
 android {
     namespace = "com.example.recipebox"
@@ -12,7 +24,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.recipebox"
+        // Permanent store identity; never change after release. The Kotlin package (namespace) is separate.
+        applicationId = "com.klakcodes.recipebox"
         minSdk = 31
         targetSdk = 37
         versionCode = 1
@@ -21,8 +34,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Without a keystore configured, release builds still work but come out unsigned
+        val storeFilePath = signingValue("storeFile", "RECIPEBOX_STORE_FILE")
+        if (storeFilePath != null) {
+            create("release") {
+                storeFile = file(storeFilePath)
+                storePassword = signingValue("storePassword", "RECIPEBOX_STORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "RECIPEBOX_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "RECIPEBOX_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Lets debug and release builds be installed side by side
+            applicationIdSuffix = ".debug"
+        }
         release {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                 enable = true
             }
@@ -32,6 +63,8 @@ android {
         create("benchmark") {
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
+            // Different signing key from release, so it needs its own ID to install alongside it
+            applicationIdSuffix = ".benchmark"
             matchingFallbacks += listOf("release")
             isDebuggable = false
         }
