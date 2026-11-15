@@ -1,15 +1,20 @@
 package com.example.recipebox.ui.shoppinglist
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -18,8 +23,10 @@ import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
@@ -40,29 +47,44 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.recipebox.data.ShoppingItem
 import com.example.recipebox.data.UNITS
+import com.example.recipebox.util.formatEditableAmount
 import kotlinx.coroutines.launch
 
-/** Sheet for typing an item straight onto the list. [onAdd] gets the raw fields; trimming and parsing happen in the logic layer. */
+/**
+ * Sheet for typing an item straight onto the list, or with [editing] set, for changing one (with a
+ * Delete button). [onSave] gets the raw fields; trimming and parsing happen in the logic layer.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemSheet(onAdd: (name: String, amountText: String, unit: String) -> Unit, onDismiss: () -> Unit) {
+fun AddItemSheet(
+    onSave: (name: String, amountText: String, unit: String) -> Unit,
+    onDismiss: () -> Unit,
+    editing: ShoppingItem? = null,
+    onDelete: () -> Unit = {},
+) {
     // No half-open stop: the sheet is short and opens with the keyboard
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
         enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
     )
     val scope = rememberCoroutineScope()
-    var name by rememberSaveable { mutableStateOf("") }
-    var amount by rememberSaveable { mutableStateOf("") }
-    var unit by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf(editing?.name.orEmpty()) }
+    var amount by rememberSaveable { mutableStateOf(editing?.amount?.let(::formatEditableAmount).orEmpty()) }
+    var unit by rememberSaveable { mutableStateOf(editing?.unit.orEmpty()) }
     var unitExpanded by remember { mutableStateOf(false) }
     val nameFocus = remember { FocusRequester() }
     val canAdd = name.isNotBlank()
 
     fun submit() {
         if (!canAdd) return
-        onAdd(name, amount, unit)
+        onSave(name, amount, unit)
+        scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+    }
+
+    fun delete() {
+        onDelete()
         scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
     }
 
@@ -76,7 +98,10 @@ fun AddItemSheet(onAdd: (name: String, amountText: String, unit: String) -> Unit
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Add item", style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp))
+            Text(
+                if (editing != null) "Edit item" else "Add item",
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
+            )
 
             OutlinedTextField(
                 value = name,
@@ -150,13 +175,29 @@ fun AddItemSheet(onAdd: (name: String, amountText: String, unit: String) -> Unit
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
-                Text("Add to list", style = MaterialTheme.typography.titleLarge)
+                Text(if (editing != null) "Save changes" else "Add to list", style = MaterialTheme.typography.titleLarge)
+            }
+
+            if (editing != null) {
+                OutlinedButton(
+                    onClick = { delete() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Icon(Icons.Outlined.Delete, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Delete", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
     }
 
-    // Focusing the name field also opens the keyboard
-    LaunchedEffect(Unit) { nameFocus.requestFocus() }
+    // Adding: focus the name and open the keyboard. Editing: leave it closed so the whole sheet shows
+    LaunchedEffect(Unit) { if (editing == null) nameFocus.requestFocus() }
 }
 
 private fun unitLabel(unit: String) = unit.ifEmpty { "None" }

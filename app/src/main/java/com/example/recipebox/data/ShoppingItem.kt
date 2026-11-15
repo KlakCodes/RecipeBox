@@ -17,6 +17,14 @@ data class ShoppingListChange(
     val insertedIds: List<Int>,
 )
 
+/** What editing an item did, holding the rows as they were so Undo can put them back. */
+sealed interface ItemEditResult {
+    data class Updated(val previous: ShoppingItem) : ItemEditResult
+
+    /** [previous] was merged into [target], shown as it was before the merge. */
+    data class Merged(val previous: ShoppingItem, val target: ShoppingItem) : ItemEditResult
+}
+
 /** What adding an item by hand did to the list, so the snackbar can describe it and Undo can reverse it. */
 sealed interface ManualAddResult {
     val name: String

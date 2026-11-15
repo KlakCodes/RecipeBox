@@ -1,7 +1,9 @@
 package com.example.recipebox.data
 
 import com.example.recipebox.util.addManualItem
+import com.example.recipebox.util.ShoppingEdit
 import com.example.recipebox.util.addMealsToShoppingList
+import com.example.recipebox.util.editShoppingItem
 import com.example.recipebox.util.mergeIntoShoppingList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -58,6 +60,40 @@ class ShoppingRepository(private val dao: ShoppingDao) {
             is ManualAddResult.Merged -> dao.upsertItem(result.previous.toEntity())
             is ManualAddResult.AlreadyListed -> Unit
         }
+    }
+
+    /** Edits item [id], merging it into a matching item if there is one. Null means nothing changed. */
+    suspend fun editItem(id: Int, name: String, amountText: String, unit: String): ItemEditResult? {
+        val existing = dao.getAllOnce().map { it.toDomain() }
+        val previous = existing.firstOrNull { it.id == id } ?: return null
+        return when (val edit = editShoppingItem(existing, id, name, amountText, unit)) {
+            null -> null
+            is ShoppingEdit.Updated -> {
+                if (edit.item == previous) return null
+                dao.upsertItem(edit.item.toEntity())
+                ItemEditResult.Updated(previous)
+            }
+            is ShoppingEdit.Merged -> {
+                val target = existing.first { it.id == edit.into.id }
+                dao.upsertItem(edit.into.toEntity())
+                dao.deleteById(edit.removedId)
+                ItemEditResult.Merged(previous, target)
+            }
+        }
+    }
+
+    suspend fun undoEdit(result: ItemEditResult) {
+        when (result) {
+            is ItemEditResult.Updated -> dao.upsertItem(result.previous.toEntity())
+            is ItemEditResult.Merged -> dao.upsertItems(listOf(result.previous.toEntity(), result.target.toEntity()))
+        }
+    }
+
+    suspend fun deleteItem(item: ShoppingItem) = dao.deleteById(item.id)
+
+    /** Undo for [deleteItem]: the same id, so it comes back in its old place. */
+    suspend fun restoreItem(item: ShoppingItem) {
+        dao.upsertItem(item.toEntity())
     }
 
     suspend fun toggleChecked(id: Int, checked: Boolean) = dao.setChecked(id, checked)

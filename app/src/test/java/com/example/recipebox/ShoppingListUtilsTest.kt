@@ -2,7 +2,9 @@ package com.example.recipebox
 
 import com.example.recipebox.data.Ingredient
 import com.example.recipebox.data.ShoppingItem
+import com.example.recipebox.util.ShoppingEdit
 import com.example.recipebox.util.addManualItem
+import com.example.recipebox.util.editShoppingItem
 import com.example.recipebox.util.mergeIntoShoppingList
 import com.example.recipebox.util.parseAmount
 import org.junit.Assert.assertEquals
@@ -253,5 +255,88 @@ class ShoppingListUtilsTest {
         assertNull(parseAmount("0"))
         assertNull(parseAmount("-2"))
         assertNull(parseAmount("NaN"))
+    }
+
+    private val editList = listOf(
+        ShoppingItem(id = 1, name = "milk", amount = 1.0, unit = "l", checked = true, sourceRecipeIds = setOf(3, 4)),
+        ShoppingItem(id = 2, name = "Flour", amount = 200.0, unit = "g", checked = false, sourceRecipeIds = setOf(5)),
+        ShoppingItem(id = 3, name = "salt", amount = null, unit = "", checked = true),
+    )
+
+    @Test
+    fun `edit - changes name, amount and unit in place, keeping ticked state and sources`() {
+        val edit = editShoppingItem(editList, id = 1, name = "  oat milk ", amountText = "1,5", unit = "l")
+        assertTrue(edit is ShoppingEdit.Updated)
+        val item = (edit as ShoppingEdit.Updated).item
+        assertEquals(ShoppingItem(id = 1, name = "oat milk", amount = 1.5, unit = "l", checked = true, sourceRecipeIds = setOf(3, 4)), item)
+    }
+
+    @Test
+    fun `edit - changing only the case doesn't merge the item with itself`() {
+        val edit = editShoppingItem(editList, id = 2, name = "flour", amountText = "200", unit = "g")
+        assertEquals(ShoppingEdit.Updated(editList[1].copy(name = "flour")), edit)
+    }
+
+    @Test
+    fun `edit - blank or invalid amount means no amount`() {
+        val blank = editShoppingItem(editList, id = 2, name = "Flour", amountText = " ", unit = "g") as ShoppingEdit.Updated
+        assertNull(blank.item.amount)
+        val junk = editShoppingItem(editList, id = 2, name = "Flour", amountText = "lots", unit = "g") as ShoppingEdit.Updated
+        assertNull(junk.item.amount)
+    }
+
+    @Test
+    fun `edit - blank name or missing item changes nothing`() {
+        assertNull(editShoppingItem(editList, id = 1, name = "   ", amountText = "1", unit = "l"))
+        assertNull(editShoppingItem(editList, id = 99, name = "eggs", amountText = "6", unit = ""))
+    }
+
+    @Test
+    fun `edit into merge - same name ignoring case and unit adds the amounts and combines sources`() {
+        val list = editList + ShoppingItem(id = 4, name = "plain flour", amount = 100.0, unit = "g", sourceRecipeIds = setOf(6))
+        val edit = editShoppingItem(list, id = 4, name = "FLOUR", amountText = "100", unit = "g")
+        assertEquals(
+            ShoppingEdit.Merged(
+                removedId = 4,
+                into = ShoppingItem(id = 2, name = "Flour", amount = 300.0, unit = "g", checked = false, sourceRecipeIds = setOf(5, 6)),
+            ),
+            edit,
+        )
+    }
+
+    @Test
+    fun `edit into merge - different unit stays a separate item`() {
+        val edit = editShoppingItem(editList, id = 1, name = "flour", amountText = "1", unit = "kg")
+        assertTrue(edit is ShoppingEdit.Updated)
+    }
+
+    @Test
+    fun `edit into merge - stays ticked only if both items were ticked`() {
+        val ticked = editList.map { if (it.id == 2) it.copy(checked = true) else it } +
+            ShoppingItem(id = 4, name = "bread flour", amount = 50.0, unit = "g", checked = true)
+        val bothTicked = editShoppingItem(ticked, id = 4, name = "flour", amountText = "50", unit = "g") as ShoppingEdit.Merged
+        assertTrue(bothTicked.into.checked)
+
+        // milk (ticked) renamed into Flour (to buy): still something to buy
+        val oneTicked = editShoppingItem(editList, id = 1, name = "flour", amountText = "100", unit = "g") as ShoppingEdit.Merged
+        assertFalse(oneTicked.into.checked)
+        assertEquals(300.0, oneTicked.into.amount!!, 0.001)
+        assertEquals(setOf(3, 4, 5), oneTicked.into.sourceRecipeIds)
+    }
+
+    @Test
+    fun `edit into merge - amount-less items merge on name, keeping any amount`() {
+        // "Salt" with no amount matches "salt" by name alone, like adding does, so it's never listed twice
+        val list = editList + ShoppingItem(id = 4, name = "sea salt", amount = null, unit = "")
+        val noAmounts = editShoppingItem(list, id = 4, name = "Salt", amountText = "", unit = "") as ShoppingEdit.Merged
+        assertEquals(3, noAmounts.into.id)
+        assertNull(noAmounts.into.amount)
+
+        val withAmount = editShoppingItem(
+            editList + ShoppingItem(id = 4, name = "salt", amount = 5.0, unit = "g"),
+            id = 3, name = "salt", amountText = "", unit = "",
+        ) as ShoppingEdit.Merged
+        assertEquals(4, withAmount.into.id)
+        assertEquals(5.0, withAmount.into.amount!!, 0.001)
     }
 }

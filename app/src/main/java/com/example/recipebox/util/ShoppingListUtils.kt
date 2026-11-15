@@ -52,6 +52,43 @@ private fun List<ShoppingItem>.matchIndex(name: String, unit: String, hasAmount:
     it.name.equals(name, ignoreCase = true) && (!hasAmount || it.unit == unit)
 }
 
+/** What editing an item does to the list. */
+sealed interface ShoppingEdit {
+    /** The item changed in place, keeping its id, ticked state and sources. */
+    data class Updated(val item: ShoppingItem) : ShoppingEdit
+
+    /** The edit matched another item: [removedId] goes, and [into] (that other item) takes its amount and sources. */
+    data class Merged(val removedId: Int, val into: ShoppingItem) : ShoppingEdit
+}
+
+/**
+ * Edits item [id] using the same rules as adding by hand: the name is trimmed and required, and a blank
+ * or invalid amount means no amount. If the result matches another item (see [matchIndex]) the two
+ * merge: amounts add up, sources combine, and it stays ticked only if both were ticked.
+ * Returns null when the name is blank or the item is gone.
+ */
+fun editShoppingItem(existing: List<ShoppingItem>, id: Int, name: String, amountText: String, unit: String): ShoppingEdit? {
+    val trimmed = name.trim()
+    if (trimmed.isEmpty()) return null
+    val original = existing.firstOrNull { it.id == id } ?: return null
+    val edited = original.copy(name = trimmed, amount = parseAmount(amountText), unit = unit)
+
+    val others = existing.filter { it.id != id }
+    val matchIndex = others.matchIndex(edited.name, edited.unit, hasAmount = edited.amount != null)
+    if (matchIndex < 0) return ShoppingEdit.Updated(edited)
+
+    val target = others[matchIndex]
+    val amount = if (target.amount == null && edited.amount == null) null else (target.amount ?: 0.0) + (edited.amount ?: 0.0)
+    return ShoppingEdit.Merged(
+        removedId = id,
+        into = target.copy(
+            amount = amount,
+            checked = target.checked && edited.checked,
+            sourceRecipeIds = target.sourceRecipeIds + edited.sourceRecipeIds,
+        ),
+    )
+}
+
 /** An amount typed by hand. Blank, unparseable, zero or negative means no amount. "1,5" works as well as "1.5". */
 fun parseAmount(text: String): Double? =
     text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() && it > 0 }

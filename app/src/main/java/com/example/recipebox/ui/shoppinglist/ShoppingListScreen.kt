@@ -2,8 +2,10 @@ package com.example.recipebox.ui.shoppinglist
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -39,22 +42,33 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxDefaults
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +78,7 @@ import com.example.recipebox.data.ShoppingItem
 import com.example.recipebox.ui.components.EmptyState
 import com.example.recipebox.util.formatAmount
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -79,8 +94,28 @@ fun ShoppingListScreen(
     val shoppingItems by viewModel.items.collectAsState()
     val lastManualAdd by viewModel.lastManualAdd.collectAsState()
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
+    // Id of the item whose edit sheet is open
+    var editingId by rememberSaveable { mutableStateOf<Int?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
+
+    // collectLatest: a newer message replaces the snackbar showing instead of queueing behind it
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collectLatest { m ->
+            when (m) {
+                is ShoppingMessage.Deleted -> {
+                    val name = m.item.name.replaceFirstChar { it.uppercase() }
+                    val action = snackbarHostState.showSnackbar("Deleted $name", actionLabel = "Undo", duration = SnackbarDuration.Short)
+                    if (action == SnackbarResult.ActionPerformed) viewModel.restoreItem(m.item)
+                }
+                is ShoppingMessage.Merged -> {
+                    val name = m.result.target.name.replaceFirstChar { it.uppercase() }
+                    val action = snackbarHostState.showSnackbar("Merged with $name", actionLabel = "Undo", duration = SnackbarDuration.Short)
+                    if (action == SnackbarResult.ActionPerformed) viewModel.undoEdit(m.result)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(scrollToTopRequests) {
         scrollToTopRequests.collect { listState.animateScrollToItem(0) }
@@ -101,7 +136,7 @@ fun ShoppingListScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        ShoppingListContent(shoppingItems, listState, viewModel)
+        ShoppingListContent(shoppingItems, listState, viewModel, onEdit = { editingId = it.id })
 
         ExtendedFloatingActionButton(
             onClick = { showAddSheet = true },
@@ -129,9 +164,26 @@ fun ShoppingListScreen(
 
     if (showAddSheet) {
         AddItemSheet(
-            onAdd = { name, amount, unit -> viewModel.addItem(name, amount, unit) },
+            onSave = { name, amount, unit -> viewModel.addItem(name, amount, unit) },
             onDismiss = { showAddSheet = false },
         )
+    }
+
+    editingId?.let { id ->
+        // Closes itself if the item goes (deleted elsewhere, or the list cleared)
+        val item = shoppingItems.firstOrNull { it.id == id }
+        if (item == null) {
+            LaunchedEffect(id) { editingId = null }
+        } else {
+            key(id) {
+                AddItemSheet(
+                    editing = item,
+                    onSave = { name, amount, unit -> viewModel.editItem(id, name, amount, unit) },
+                    onDelete = { viewModel.deleteItem(item) },
+                    onDismiss = { editingId = null },
+                )
+            }
+        }
     }
 }
 
@@ -141,6 +193,7 @@ private fun ShoppingListContent(
     shoppingItems: List<ShoppingItem>,
     listState: LazyListState,
     viewModel: ShoppingListViewModel,
+    onEdit: (ShoppingItem) -> Unit,
 ) {
     val (ticked, toBuy) = shoppingItems.partition { it.checked }
 
@@ -183,13 +236,25 @@ private fun ShoppingListContent(
         if (toBuy.isNotEmpty()) {
             item(key = "toBuyHeader") { SectionHeader("To buy", Modifier.animateItem()) }
             items(toBuy, key = { it.id }) { item ->
-                ShoppingRow(item, onToggle = { viewModel.toggleChecked(item.id, it) }, modifier = Modifier.animateItem())
+                ShoppingRow(
+                    item,
+                    onToggle = { viewModel.toggleChecked(item.id, it) },
+                    onEdit = { onEdit(item) },
+                    onDelete = { viewModel.deleteItem(item) },
+                    modifier = Modifier.animateItem(),
+                )
             }
         }
         if (ticked.isNotEmpty()) {
             item(key = "tickedHeader") { SectionHeader("Ticked", Modifier.animateItem()) }
             items(ticked, key = { it.id }) { item ->
-                ShoppingRow(item, onToggle = { viewModel.toggleChecked(item.id, it) }, modifier = Modifier.animateItem())
+                ShoppingRow(
+                    item,
+                    onToggle = { viewModel.toggleChecked(item.id, it) },
+                    onEdit = { onEdit(item) },
+                    onDelete = { viewModel.deleteItem(item) },
+                    modifier = Modifier.animateItem(),
+                )
             }
         }
     }
@@ -256,58 +321,107 @@ private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+/**
+ * Tap ticks, long-press edits, swipe either way deletes. Edit and Delete are also TalkBack custom
+ * actions, since long-press and swipe aren't discoverable with a screen reader.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ShoppingRow(item: ShoppingItem, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+private fun ShoppingRow(
+    item: ShoppingItem,
+    onToggle: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = MaterialTheme.colorScheme
-    // Ticked rows drop their background so the to-buy rows stand out
+    val shape = RoundedCornerShape(22.dp)
+    // Ticked rows match the screen background so the to-buy rows stand out. Opaque rather than
+    // transparent so the delete background doesn't show through while swiping.
     val container by animateColorAsState(
-        if (item.checked) Color.Transparent else colors.surfaceContainerLow,
+        if (item.checked) colors.surface else colors.surfaceContainerLow,
         label = "rowContainer",
     )
     val amount = item.amount?.let { a ->
         listOfNotNull(formatAmount(a, item.unit), item.unit.ifEmpty { null }).joinToString(" ")
     }
+    // Plain remember, not rememberSwipeToDismissBoxState: that one is saveable, and the list restores
+    // saved state by key, so a row brought back by Undo (same id) would come back already dismissed
+    // and delete itself again
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
 
-    Surface(
-        checked = item.checked,
-        onCheckedChange = onToggle,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 60.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = container,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TickBox(item.checked)
-            Column(
+    SwipeToDismissBox(
+        state = dismissState,
+        onDismiss = { onDelete() },
+        modifier = modifier,
+        backgroundContent = {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 14.dp),
+                    .fillMaxSize()
+                    .background(colors.errorContainer, shape)
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    item.name.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (item.checked) colors.onSurfaceVariant else colors.onSurface,
-                    textDecoration = if (item.checked) TextDecoration.LineThrough else null,
+                Icon(Icons.Outlined.Delete, contentDescription = null, tint = colors.onErrorContainer)
+                Spacer(Modifier.weight(1f))
+                Icon(Icons.Outlined.Delete, contentDescription = null, tint = colors.onErrorContainer)
+            }
+        },
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 60.dp)
+                .clip(shape)
+                .combinedClickable(
+                    role = Role.Checkbox,
+                    onLongClickLabel = "Edit",
+                    onLongClick = onEdit,
+                    onClick = { onToggle(!item.checked) },
                 )
-                if (!item.checked && item.sourceRecipeIds.size > 1) {
+                .semantics {
+                    toggleableState = ToggleableState(item.checked)
+                    customActions = listOf(
+                        CustomAccessibilityAction("Edit") { onEdit(); true },
+                        CustomAccessibilityAction("Delete") { onDelete(); true },
+                    )
+                },
+            shape = shape,
+            color = container,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TickBox(item.checked)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 14.dp),
+                ) {
                     Text(
-                        "From ${item.sourceRecipeIds.size} recipes",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.tertiary,
+                        item.name.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (item.checked) colors.onSurfaceVariant else colors.onSurface,
+                        textDecoration = if (item.checked) TextDecoration.LineThrough else null,
+                    )
+                    if (!item.checked && item.sourceRecipeIds.size > 1) {
+                        Text(
+                            "From ${item.sourceRecipeIds.size} recipes",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colors.tertiary,
+                        )
+                    }
+                }
+                if (amount != null) {
+                    Text(
+                        amount,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (item.checked) colors.onSurfaceVariant else colors.primary,
+                        textDecoration = if (item.checked) TextDecoration.LineThrough else null,
                     )
                 }
-            }
-            if (amount != null) {
-                Text(
-                    amount,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = if (item.checked) colors.onSurfaceVariant else colors.primary,
-                    textDecoration = if (item.checked) TextDecoration.LineThrough else null,
-                )
             }
         }
     }
