@@ -22,7 +22,7 @@ Screenshots show the tangerine fallback palette. On a device, the app uses dynam
 
 ## Install
 
-Download `RecipeBox-1.0.apk` from the [latest release](https://github.com/KlakCodes/RecipeBox/releases/latest) and open it on your phone (Android 12 or newer). You may need to allow installing apps from your browser or file manager.
+Download `RecipeBox-1.1.apk` from the [latest release](https://github.com/KlakCodes/RecipeBox/releases/latest) and open it on your phone (Android 12 or newer). You may need to allow installing apps from your browser or file manager.
 
 ## Tech stack
 
