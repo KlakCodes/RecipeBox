@@ -65,7 +65,7 @@ In version 1:
 • Add, edit and delete recipes: title, servings, ingredients (amount, unit, name) and method steps
 • Change the servings on a recipe and see every ingredient amount update
 • Add a recipe (at its chosen servings) to a shopping list that merges duplicates and lets you tick items off
-Not in version 1: photos, tags and search, importing recipes from websites, cloud sync and sharing. These go in the v2 list at the end.
+Version 1.0 is released (GitHub Release `v1.0`). We're now building version 2; see the Version 2 section at the end.
 Tech stack
 Use Google's current recommended setup: Kotlin, Jetpack Compose and a Room database, all inside Android Studio. Everything is free and works offline.
 Piece
@@ -120,3 +120,11 @@ Building the shopping list. When you add a recipe at its chosen servings:
 3. If one exists, add the amounts together; otherwise insert a new item.
 4. Items with no amount ("salt") are added once and never duplicated.
 Keep this logic in plain Kotlin functions with no Android code in them, so you can write quick unit tests for it.
+
+### Version 2
+
+Version 1.0 is released. Version 2 is in progress, starting with:
+• Weekly meal planner
+• Editing shopping list items
+
+Future ideas, not yet scheduled: photos, tags and search, importing recipes from websites, unit conversion, cloud sync and sharing.
