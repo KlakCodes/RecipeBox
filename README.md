@@ -13,8 +13,14 @@ Screenshots show the tangerine fallback palette. On a device, the app uses dynam
 
 - **Recipes**: add, edit and delete recipes with a title, servings, ingredients (amount, unit, name) and method steps.
 - **Scaling**: change the servings on a recipe and every ingredient amount updates. Amounts are rounded for display, and spoons and cups use cooking fractions (1½ tbsp). The saved recipe never changes.
-- **Shopping list**: add a recipe at its chosen servings. Matching items (same name, ignoring case, and same unit) are merged, amount-less items like "salt" are added once, and items merged from several recipes show "From N recipes". Tick items off, then clear the ticked ones or the whole list.
+- **Shopping list**: add a recipe at its chosen servings. Matching items (same name, ignoring case, and same unit) are merged, amount-less items like "salt" are added once, and items merged from several recipes show "From N recipes". Tick items off, then clear the ticked ones or the whole list. You can also add your own items by hand.
+- **Recipe icons**: each recipe gets an icon chosen automatically from its title, and you can pick a different one yourself.
+- **Settings**: choose wallpaper colours or the tangerine palette, and System, Light or Dark theme.
 - **Offline**: everything is stored locally in a Room database.
+
+## Install
+
+Download `RecipeBox-1.0.apk` from the [latest release](https://github.com/KlakCodes/RecipeBox/releases/latest) and open it on your phone (Android 12 or newer). You may need to allow installing apps from your browser or file manager.
 
 ## Tech stack
 
@@ -52,6 +58,7 @@ app/src/main/java/com/example/recipebox/
   ui/recipedetail/         # Recipe detail with servings scaler
   ui/recipeedit/           # Add / edit / delete a recipe
   ui/shoppinglist/         # Shopping list
+  ui/settings/             # Colour and theme settings
   ui/components/           # Shared Expressive widgets
   ui/theme/                # Colour schemes, typography (Roboto Flex), shapes
   util/                    # Scaling, formatting and merge logic (pure Kotlin)
@@ -60,3 +67,7 @@ app/src/main/java/com/example/recipebox/
 ## Roadmap
 
 Planned for version 2: photos, tags and search, importing recipes from websites, and cloud sync and sharing.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
