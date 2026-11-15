@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.SoupKitchen
 import androidx.compose.material3.Badge
@@ -38,6 +39,7 @@ import androidx.navigation.navArgument
 import com.example.recipebox.RecipeBoxApplication
 import com.example.recipebox.ui.components.LocalNavAnimatedVisibilityScope
 import com.example.recipebox.ui.components.LocalSharedTransitionScope
+import com.example.recipebox.ui.plan.PlanScreen
 import com.example.recipebox.ui.recipedetail.RecipeDetailScreen
 import com.example.recipebox.ui.recipeedit.RecipeEditScreen
 import com.example.recipebox.ui.recipelist.RecipeListScreen
@@ -49,8 +51,9 @@ import com.example.recipebox.ui.theme.NavMotionDuration
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 private const val RecipeListRoute = "recipe_list"
+private const val PlanRoute = "plan"
 private const val ShoppingListRoute = "shopping_list"
-internal val TabRoutes = setOf(RecipeListRoute, ShoppingListRoute)
+internal val TabRoutes = setOf(RecipeListRoute, PlanRoute, ShoppingListRoute)
 
 @Composable
 fun RecipeBoxNavGraph(navController: NavHostController = rememberNavController()) {
@@ -69,6 +72,7 @@ fun RecipeBoxNavGraph(navController: NavHostController = rememberNavController()
     // Tapping the tab you're already on sends one of these; the tab scrolls itself to the top.
     // Events rather than state, so a tab restored later doesn't replay an old request.
     val recipesScrollToTop = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
+    val planScrollToTop = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
     val shoppingScrollToTop = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
 
     val animationsEnabled = rememberAnimationsEnabled()
@@ -102,6 +106,18 @@ fun RecipeBoxNavGraph(navController: NavHostController = rememberNavController()
                             },
                             icon = { Icon(Icons.Outlined.SoupKitchen, contentDescription = null) },
                             label = { Text("Recipes") },
+                        )
+                        ShortNavigationBarItem(
+                            selected = currentRoute == PlanRoute,
+                            onClick = {
+                                if (currentRoute == PlanRoute) {
+                                    planScrollToTop.tryEmit(Unit)
+                                } else {
+                                    navController.navigateToTab(PlanRoute)
+                                }
+                            },
+                            icon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
+                            label = { Text("Plan") },
                         )
                         ShortNavigationBarItem(
                             selected = currentRoute == ShoppingListRoute,
@@ -176,6 +192,12 @@ fun RecipeBoxNavGraph(navController: NavHostController = rememberNavController()
                             onBack = { navController.from(entry) { popBackStack() } },
                             onSaved = { navController.from(entry) { popBackStack() } },
                             onDeleted = { navController.from(entry) { popBackStack(RecipeListRoute, inclusive = false) } },
+                        )
+                    }
+                    composable(PlanRoute) { entry ->
+                        PlanScreen(
+                            onRecipeClick = { id -> navController.from(entry) { navigate("recipe_detail/$id") } },
+                            scrollToTopRequests = planScrollToTop,
                         )
                     }
                     composable(ShoppingListRoute) {

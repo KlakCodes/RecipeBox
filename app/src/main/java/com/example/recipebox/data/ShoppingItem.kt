@@ -10,6 +10,13 @@ data class ShoppingItem(
     val sourceRecipeIds: Set<Int> = emptySet(),
 )
 
+/** What adding a week's meals did to the list: the rows as they were before, and the new rows, so Undo can put it back. */
+data class ShoppingListChange(
+    val mealCount: Int,
+    val previous: List<ShoppingItem>,
+    val insertedIds: List<Int>,
+)
+
 /** What adding an item by hand did to the list, so the snackbar can describe it and Undo can reverse it. */
 sealed interface ManualAddResult {
     val name: String

@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.recipebox.data.IngredientEntity
+import com.example.recipebox.data.PlanRepository
 import com.example.recipebox.data.RecipeBoxDatabase
 import com.example.recipebox.data.RecipeDao
 import com.example.recipebox.data.RecipeEntity
@@ -26,6 +27,7 @@ class RecipeBoxApplication : Application() {
     val database by lazy { RecipeBoxDatabase.getInstance(this) }
     val repository by lazy { RecipeRepository(database.recipeDao()) }
     val shoppingRepository by lazy { ShoppingRepository(database.shoppingDao()) }
+    val planRepository by lazy { PlanRepository(database.planDao()) }
     val settingsRepository by lazy { SettingsRepository(settingsDataStore) }
 
     override fun onCreate() {

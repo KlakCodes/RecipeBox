@@ -1,6 +1,7 @@
 package com.example.recipebox.data
 
 import com.example.recipebox.util.addManualItem
+import com.example.recipebox.util.addMealsToShoppingList
 import com.example.recipebox.util.mergeIntoShoppingList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,6 +18,24 @@ class ShoppingRepository(private val dao: ShoppingDao) {
             original == null || original != mergedItem
         }
         dao.upsertItems(toUpsert.map { it.toEntity() })
+    }
+
+    /** Adds every meal at its planned servings, merging like [addFromRecipe]. The result carries what Undo needs. */
+    suspend fun addPlannedMeals(meals: List<PlannedMeal>): ShoppingListChange {
+        val existing = dao.getAllOnce().map { it.toDomain() }
+        val merged = addMealsToShoppingList(existing, meals)
+        val toUpsert = merged.filter { it !in existing }
+        val ids = dao.upsertItems(toUpsert.map { it.toEntity() })
+        return ShoppingListChange(
+            mealCount = meals.size,
+            previous = existing.filter { old -> toUpsert.any { it.id == old.id } },
+            insertedIds = ids.filter { it > 0 }.map { it.toInt() },
+        )
+    }
+
+    suspend fun undoChange(change: ShoppingListChange) {
+        dao.deleteByIds(change.insertedIds)
+        dao.upsertItems(change.previous.map { it.toEntity() })
     }
 
     /** Adds a hand-typed item, merging it like a recipe ingredient. The result carries what Undo needs. */

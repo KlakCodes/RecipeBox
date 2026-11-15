@@ -45,7 +45,7 @@ class RecipeRepository(private val dao: RecipeDao) {
     }
 }
 
-private fun RecipeWithDetails.toDomain(): Recipe = Recipe(
+internal fun RecipeWithDetails.toDomain(): Recipe = Recipe(
     id = recipe.id,
     title = recipe.title,
     servings = recipe.servings,

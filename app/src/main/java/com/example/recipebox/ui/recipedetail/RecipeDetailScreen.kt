@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,7 +39,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +64,8 @@ import com.example.recipebox.ui.theme.RecipeBoxShapes
 import com.example.recipebox.util.formatScaledAmount
 import com.example.recipebox.util.plural
 import com.example.recipebox.util.splitFreeTextNote
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -70,12 +76,15 @@ fun RecipeDetailScreen(
         factory = RecipeDetailViewModel.factory(
             recipeRepository = (LocalContext.current.applicationContext as RecipeBoxApplication).repository,
             shoppingRepository = (LocalContext.current.applicationContext as RecipeBoxApplication).shoppingRepository,
+            planRepository = (LocalContext.current.applicationContext as RecipeBoxApplication).planRepository,
         ),
     ),
 ) {
     val recipe by viewModel.recipe.collectAsState()
     val chosenServings by viewModel.chosenServings.collectAsState()
     val addedToList by viewModel.addedToList.collectAsState()
+    val addedToPlan by viewModel.addedToPlan.collectAsState()
+    var showPlanSheet by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(addedToList) {
@@ -83,6 +92,13 @@ fun RecipeDetailScreen(
             snackbarHostState.showSnackbar("Added to shopping list")
             viewModel.resetAddedToList()
         }
+    }
+
+    LaunchedEffect(addedToPlan) {
+        val day = addedToPlan ?: return@LaunchedEffect
+        // Reset only once shown: clearing first would change the key and cancel the snackbar
+        snackbarHostState.showSnackbar("Added to ${day.format(PlannedDayFormat)}")
+        viewModel.resetAddedToPlan()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -101,12 +117,20 @@ fun RecipeDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         TonalIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", onBack)
-                        TonalIconButton(
-                            Icons.Outlined.Edit,
-                            "Edit recipe",
-                            onClick = { onEdit(r.id) },
-                            shape = RecipeBoxShapes.Squircle,
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TonalIconButton(
+                                Icons.Outlined.EditCalendar,
+                                "Add to plan",
+                                onClick = { showPlanSheet = true },
+                                shape = RecipeBoxShapes.Squircle,
+                            )
+                            TonalIconButton(
+                                Icons.Outlined.Edit,
+                                "Edit recipe",
+                                onClick = { onEdit(r.id) },
+                                shape = RecipeBoxShapes.Squircle,
+                            )
+                        }
                     }
                 }
 
@@ -171,7 +195,18 @@ fun RecipeDetailScreen(
                 .padding(bottom = 96.dp),
         )
     }
+
+    if (showPlanSheet) {
+        AddToPlanSheet(
+            today = LocalDate.now(),
+            servings = chosenServings,
+            onPick = { day -> viewModel.addToPlan(day) },
+            onDismiss = { showPlanSheet = false },
+        )
+    }
 }
+
+private val PlannedDayFormat = DateTimeFormatter.ofPattern("EEE d MMM")
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

@@ -13,8 +13,9 @@ interface ShoppingDao {
     @Query("SELECT * FROM shopping_items ORDER BY id ASC")
     suspend fun getAllOnce(): List<ShoppingItemEntity>
 
+    /** Returns each row's new id when inserting, or -1 when updating an existing row. */
     @Upsert
-    suspend fun upsertItems(items: List<ShoppingItemEntity>)
+    suspend fun upsertItems(items: List<ShoppingItemEntity>): List<Long>
 
     /** Returns the new row id when inserting, or -1 when updating an existing row. */
     @Upsert
@@ -22,6 +23,9 @@ interface ShoppingDao {
 
     @Query("DELETE FROM shopping_items WHERE id = :id")
     suspend fun deleteById(id: Int)
+
+    @Query("DELETE FROM shopping_items WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Int>)
 
     @Query("UPDATE shopping_items SET checked = :checked WHERE id = :id")
     suspend fun setChecked(id: Int, checked: Boolean)

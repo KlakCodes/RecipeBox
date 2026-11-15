@@ -63,6 +63,32 @@ data class RecipeWithDetails(
     val steps: List<StepEntity>,
 )
 
+@Entity(
+    tableName = "planned_meals",
+    foreignKeys = [ForeignKey(
+        entity = RecipeEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["recipeId"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+    indices = [Index("recipeId"), Index("date")],
+)
+data class PlannedMealEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val recipeId: Int,
+    // LocalDate.toEpochDay()
+    val date: Long,
+    val servings: Int,
+    // Order within the day
+    val position: Int,
+)
+
+data class PlannedMealWithRecipe(
+    @Embedded val meal: PlannedMealEntity,
+    @Relation(entity = RecipeEntity::class, parentColumn = "recipeId", entityColumn = "id")
+    val recipe: RecipeWithDetails,
+)
+
 @Entity(tableName = "shopping_items")
 data class ShoppingItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,

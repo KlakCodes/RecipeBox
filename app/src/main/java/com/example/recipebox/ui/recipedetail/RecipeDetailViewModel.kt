@@ -6,6 +6,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.recipebox.data.PlanRepository
 import com.example.recipebox.data.Recipe
 import com.example.recipebox.data.RecipeRepository
 import com.example.recipebox.data.ShoppingRepository
@@ -15,11 +16,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class RecipeDetailViewModel(
     savedStateHandle: SavedStateHandle,
     repository: RecipeRepository,
     private val shoppingRepository: ShoppingRepository,
+    private val planRepository: PlanRepository,
 ) : ViewModel() {
     private val recipeId: Int = checkNotNull(savedStateHandle["recipeId"])
 
@@ -57,12 +60,32 @@ class RecipeDetailViewModel(
         _addedToList.value = false
     }
 
+    private val _addedToPlan = MutableStateFlow<LocalDate?>(null)
+    /** The day the recipe was just planned for, so the screen can confirm it. */
+    val addedToPlan: StateFlow<LocalDate?> = _addedToPlan
+
+    /** Plans the recipe for [date] at the servings currently shown. */
+    fun addToPlan(date: LocalDate) {
+        val r = recipe.value ?: return
+        viewModelScope.launch {
+            planRepository.addMeal(r.id, date, chosenServings.value)
+            _addedToPlan.value = date
+        }
+    }
+
+    fun resetAddedToPlan() {
+        _addedToPlan.value = null
+    }
+
     companion object {
-        fun factory(recipeRepository: RecipeRepository, shoppingRepository: ShoppingRepository) =
-            viewModelFactory {
-                initializer {
-                    RecipeDetailViewModel(createSavedStateHandle(), recipeRepository, shoppingRepository)
-                }
+        fun factory(
+            recipeRepository: RecipeRepository,
+            shoppingRepository: ShoppingRepository,
+            planRepository: PlanRepository,
+        ) = viewModelFactory {
+            initializer {
+                RecipeDetailViewModel(createSavedStateHandle(), recipeRepository, shoppingRepository, planRepository)
             }
+        }
     }
 }
