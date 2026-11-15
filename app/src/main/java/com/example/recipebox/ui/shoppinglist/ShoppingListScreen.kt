@@ -88,12 +88,14 @@ fun ShoppingListScreen(
 
     LaunchedEffect(lastManualAdd) {
         val result = lastManualAdd ?: return@LaunchedEffect
-        viewModel.resetLastManualAdd()
         val name = result.name.replaceFirstChar { it.uppercase() }
+        // Reset only once shown: clearing first would change the key and cancel the snackbar
         if (result is ManualAddResult.AlreadyListed) {
             snackbarHostState.showSnackbar("$name is already on the list")
+            viewModel.resetLastManualAdd()
         } else {
             val action = snackbarHostState.showSnackbar("Added $name", actionLabel = "Undo", duration = SnackbarDuration.Short)
+            viewModel.resetLastManualAdd()
             if (action == SnackbarResult.ActionPerformed) viewModel.undoAdd(result)
         }
     }

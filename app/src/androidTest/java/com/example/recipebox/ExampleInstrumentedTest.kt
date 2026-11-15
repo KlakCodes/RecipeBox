@@ -19,6 +19,8 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.example.recipebox", appContext.packageName)
+        // The app ID (com.klakcodes.recipebox, plus the build type's suffix) differs from the code's package
+        assertEquals(BuildConfig.APPLICATION_ID, appContext.packageName)
+        assertTrue(appContext.packageName.startsWith("com.klakcodes.recipebox"))
     }
 }
