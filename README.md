@@ -14,6 +14,8 @@ Screenshots show the tangerine fallback palette. On a device, the app uses dynam
 - **Recipes**: add, edit and delete recipes with a title, servings, ingredients (amount, unit, name) and method steps.
 - **Scaling**: change the servings on a recipe and every ingredient amount updates. Amounts are rounded for display, and spoons and cups use cooking fractions (1½ tbsp). The saved recipe never changes.
 - **Shopping list**: add a recipe at its chosen servings. Matching items (same name, ignoring case, and same unit) are merged, amount-less items like "salt" are added once, and items merged from several recipes show "From N recipes". Tick items off, then clear the ticked ones or the whole list. You can also add your own items by hand.
+- **Editing the list**: long-press an item to change its name, amount or unit; if it now matches another item, the two merge. Swipe an item away to delete it. Both can be undone, and with TalkBack, Edit and Delete are available as actions on each item.
+- **Meal planner**: plan recipes for each day of the week, Monday to Sunday, at any number of servings. Add meals from the Plan tab or from a recipe's page (at the servings you've scaled to), swipe a meal away to remove it, and add the whole week to the shopping list in one go.
 - **Recipe icons**: each recipe gets an icon chosen automatically from its title, and you can pick a different one yourself.
 - **Settings**: choose wallpaper colours or the tangerine palette, and System, Light or Dark theme.
 - **Offline**: everything is stored locally in a Room database.
@@ -57,6 +59,7 @@ app/src/main/java/com/example/recipebox/
   ui/recipelist/           # Recipe list (hero card + grid)
   ui/recipedetail/         # Recipe detail with servings scaler
   ui/recipeedit/           # Add / edit / delete a recipe
+  ui/plan/                 # Weekly meal planner
   ui/shoppinglist/         # Shopping list
   ui/settings/             # Colour and theme settings
   ui/components/           # Shared Expressive widgets
